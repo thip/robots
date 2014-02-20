@@ -18,18 +18,30 @@ int turn_to( double targetAngle, PlayerClient* robot, Position2dProxy* pp){
   robot->Read();
   
   double worldAngle;
-  double prop = 99.9;
+  double p = 99.9;
+  double i = 0;
+  double d = 0;
+  double p_1 = 0;
+
+  double pc = 0.6;
+  double ic = 0.2;
+  double dc = 0.0;
   
-  while ( prop > 0.2 || prop < -0.2){
+  while ( p > 0.002 || p < -0.002){
   
     robot->Read();
 
     worldAngle = rtod( pp->GetYaw() );
-    prop = getAngleDiff( worldAngle, targetAngle );
+    p = getAngleDiff( worldAngle, targetAngle );
 
-    std::cout << prop << std::endl;
+    d = p - p_1;
+    p_1 = p;
 
-    pp->SetSpeed(0.1 ,dtor( 5 * prop));
+    i = i + p;
+
+    std::cout << "p: " <<  pc * p << " i: " << ic * i << std::endl;
+
+    pp->SetSpeed(0, dtor( pc * p + ic * i + dc * d));
     sleep(1); 
   }
 
@@ -80,23 +92,24 @@ int move_distance( double target_distance,
 
 int main(int argc, char *argv[])
 {
-	using namespace PlayerCc;
+    using namespace PlayerCc;
 
-	PlayerClient    robot("lisa.islnet");
-	SonarProxy      sp(&robot,0);
-	Position2dProxy pp(&robot,0);
+    PlayerClient    robot("lisa.islnet");
+    SonarProxy      sp(&robot,0);
+    Position2dProxy pp(&robot,0);
 
-	pp.SetMotorEnable(true);
+    pp.SetMotorEnable(true);
 
-  double angle = 0;
-  turn_to ( angle, &robot, &pp);
-  
+    double angle = 0;
+    //turn_to ( angle, &robot, &pp);
 
-  while (true) {
-    move_distance( 1, &robot, &pp);
     angle = fmod(angle + 90, 360);
     turn_to( angle, &robot, &pp);
-  }
+    /*while (true) {
+    //move_distance( 1, &robot, &pp);
+    angle = fmod(angle + 90, 360);
+    turn_to( angle, &robot, &pp);
+    }*/
 }
 
 

@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 
     double angle = 0;
     
-    mover->set_target( 0, 1 );
+    mover->set_target( 0, -1 );
 
     while (true) {
     	mover->move();

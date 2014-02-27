@@ -90,6 +90,39 @@ int move_distance( double target_distance,
   return 0;
 }
 
+void go_to( double x, double y ){
+}
+
+double distance_between( double x1, y1, x2, y2 ){
+	double delta_x = x2 - x1;
+	double delta_y = y2 - y1;
+	return sqrt( pow( delta_x, 2 ) + pow( delta_y, 2);
+}
+
+void go_to( double x, double y, 
+	PlayerClient* robot, 
+	Position2dProxy* pp){
+
+	double p = 99.9;
+	double i = 0;
+
+	while(p > 0.2){
+		i = i + p;
+
+		robot->Read();
+
+		p = distance_between( pp->GetXPos(), pp->GetYPos(), x, y)
+
+		pp->SetSpeed(0.1 * p + 0.1 * i, 0);  
+		std::cout << p << i << std::endl;
+		sleep(1); 
+	}
+
+	return 0;
+}
+
+
+
 int main(int argc, char *argv[])
 {
     using namespace PlayerCc;
@@ -103,13 +136,13 @@ int main(int argc, char *argv[])
     double angle = 0;
     //turn_to ( angle, &robot, &pp);
 
-    angle = fmod(angle + 90, 360);
-    turn_to( angle, &robot, &pp);
-    /*while (true) {
-    //move_distance( 1, &robot, &pp);
-    angle = fmod(angle + 90, 360);
-    turn_to( angle, &robot, &pp);
-    }*/
+    //angle = fmod(angle + 90, 360);
+    //turn_to( angle, &robot, &pp);
+    while (true) {
+    	move_distance( 1, &robot, &pp);
+    	angle = fmod(angle + 90, 360);
+    	turn_to( angle, &robot, &pp);
+    }
 }
 
 

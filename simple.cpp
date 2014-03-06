@@ -17,9 +17,9 @@ double get_heading_between ( double x1, double y1, double x2, double y2 ){
     double delta_x = x2 - x1;
     double delta_y = y2 - y1;
 
-    double rads = atan( delta_x / delta_y);
+    double rads = atan2( delta_x,  delta_y);
 
-    return rtod(rads);
+    return fmod (rtod(rads) + 360, 360) ;
 
 }
 
@@ -30,15 +30,43 @@ double distance_between( double x1, double y1, double x2, double y2 ){
 	return sqrt( pow( delta_x, 2 ) + pow( delta_y, 2));
 }
 
+typedef struct pid_bundle{
+    double p_coef;
+    double i_coef;
+    double d_coef;
+    double i_decay;
+} pid_bundle;
+
+
+class PIDController{
+    private:
+        double p, i, d;
+        pid_bundle coeffs;
+    public:
+
+        PIDController(pid_bundle coeffs){
+            this->coeffs = coeffs;
+        }
+
+        void update(double delta){
+            p = delta;
+            i = (i+p)*coeffs.decay;
+            d = 0
+        }
+
+        double output(){
+            return p * coeffs.p_coeff + i * coeffs.i_coeff + d * coeffs.d_coeff;
+        }
+
+
 class RobotMover{
 	private:
 		PlayerClient* robot;
 		Position2dProxy* position_proxy;
 
-		double p_coef, i_coef, d_coef;
-        double p, i, d;
+        PIDController drive_pid, steer_pid;
 
-        double x_target, y_target;
+        double x_target, y_target, x_start, y_start;
 		
         bool in_front( double x, double y ){
             double world_heading = get_heading_between ( position_proxy->GetXPos(), position_proxy->GetYPos(), x_target, y_target );
@@ -53,34 +81,55 @@ class RobotMover{
 
 
 	public:
-		RobotMover( double p_coef, double i_coef, double d_coef,
+		RobotMover( pid_bundle drive_coeffs, pid_bundle steer_coeffs,
                     PlayerClient* robot, Position2dProxy* position_proxy ){
-            this->p_coef = p_coef;
-            this->i_coef = i_coef;
-            this->d_coef = d_coef;
             this->robot = robot;
             this->position_proxy = position_proxy;
+
+            drive_pid = new PIDController(drive_coeffs);
+            steer_pid = new PIDController(steer_coeffs);
 		}
 		
         void set_target( double x_target, double y_target ){
-            this->x_target = x_target;
-            this->y_target = y_target;
+            
+          robot->Read();
+          
+            x_start = position_proxy->GetXPos();
+            x_start = position_proxy->GetYPos();
+
+            
+            this->x_target = x_target + x_start;
+            this->y_target = y_target + y_start;
         }
 
 
         void move() {
             
-            i = i + p;
+            
 
             robot->Read();
 
-            p = distance_between(position_proxy->GetXPos(), position_proxy->GetYPos(),
+            double drive_delta = distance_between(position_proxy->GetXPos(), position_proxy->GetYPos(),
                                  x_target, y_target);
+            
+        
+            if ( !in_front(x_target, y_target) ) drive_delta *= -1;
 
-            if ( !in_front(x_target, y_target) ) p *= -1;
 
-            position_proxy->SetSpeed(0.1 * p + 0.1 * i, 0);  
-            std::cout << p << i << std::endl;
+
+            double world_heading = get_heading_between ( position_proxy->GetXPos(), position_proxy->GetYPos(), x_target, y_target );
+            double local_heading = getAngleDiff( rtod(position_proxy->GetYaw()), world_heading );
+
+            //position_proxy->SetSpeed(0* 0.1 * p + 0.1 * i,0* 0.1*local_heading);  
+            
+            drive_pid.update(drive_delta);
+            steer_pid.update(local_heading);
+
+
+            position_proxy->SetSpeed(drive_pid.output(), steer_pid.output());  
+            
+            std::cout << p << std::endl;
+        
         }
 };
 
@@ -186,17 +235,17 @@ int main(int argc, char *argv[])
 {
     using namespace PlayerCc;
 
-    PlayerClient    robot("lisa.islnet");
+    PlayerClient    robot(argv[1]);
     SonarProxy      sp(&robot, 0);
     Position2dProxy pp(&robot, 0);
     
-    RobotMover* mover = new RobotMover( 0.1, 0.1, 0, &robot, &pp);
+    RobotMover* mover = new RobotMover( 0.1, 0, 0, &robot, &pp);
 
     pp.SetMotorEnable(true);
 
     double angle = 0;
     
-    mover->set_target( 0, -1 );
+    mover->set_target( 3, 1 );
 
     while (true) {
     	mover->move();

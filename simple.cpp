@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     RangerProxy      sp(&robot, 0);
     Position2dProxy pp(&robot, 0);
    
-    pid_bundle drive_coeffs = {0.1, 0, 0, 0};
+    pid_bundle drive_coeffs = {0.3, 0.1, 0, 0};
     pid_bundle steer_coeffs = {1, 0.1, 0, 0};
 
     RobotMover* mover = new RobotMover( drive_coeffs, steer_coeffs, &robot, &pp);
